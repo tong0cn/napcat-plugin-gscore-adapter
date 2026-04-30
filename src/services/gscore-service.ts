@@ -28,6 +28,7 @@ export class GScoreService {
   private ws: WebSocket | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private connectionTimeout: NodeJS.Timeout | null = null;
+  private heartbeatTimer: NodeJS.Timeout | null = null;
   private isConnecting: boolean = false;
   private reconnectAttempts: number = 0;
   private isManualRetry: boolean = false;
@@ -174,6 +175,7 @@ export class GScoreService {
           clearTimeout(this.reconnectTimer);
           this.reconnectTimer = null;
         }
+        this.startHeartbeat();
       });
 
       this.ws.on('message', (data) => {
@@ -211,6 +213,7 @@ export class GScoreService {
           clearTimeout(this.connectionTimeout);
           this.connectionTimeout = null;
         }
+        this.stopHeartbeat();
         this.isConnecting = false;
         this.ws = null;
         if (!this.isTimeoutTerminated) {
@@ -241,6 +244,7 @@ export class GScoreService {
       clearTimeout(this.connectionTimeout);
       this.connectionTimeout = null;
     }
+    this.stopHeartbeat();
     if (this.ws) {
       this.ws.close();
       this.ws = null;
@@ -250,6 +254,37 @@ export class GScoreService {
     if (resetCounter) {
       this.reconnectAttempts = 0;
       this.isManualRetry = false;
+    }
+  }
+
+  /**
+   * 启动心跳定时器
+   * 空闲时定期发送心跳包，防止连接被中间件/服务端因超时断开
+   */
+  private startHeartbeat(): void {
+    this.stopHeartbeat();
+    const interval = pluginState.config.heartbeatInterval ?? 30000;
+    if (interval <= 0) return;
+
+    this.heartbeatTimer = setInterval(() => {
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        try {
+          this.ws.send(Buffer.from(JSON.stringify({ type: 'heartbeat' })));
+          pluginState.logger.debug('[GScore] 已发送心跳包');
+        } catch (err) {
+          pluginState.logger.warn('[GScore] 发送心跳包失败:', err);
+        }
+      }
+    }, interval);
+  }
+
+  /**
+   * 停止心跳定时器
+   */
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
     }
   }
 
