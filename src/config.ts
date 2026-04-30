@@ -8,6 +8,7 @@ import type { PluginConfig } from './types';
 
 /** 默认配置 */
 export const DEFAULT_CONFIG: PluginConfig = {
+    heartbeatInterval: 30000,
     gscoreEnable: true,
     forwardSelfMessage: false,
     commandPrefix: '#早柚',
@@ -53,6 +54,7 @@ export function buildConfigSchema(ctx: NapCatPluginContext): PluginConfigSchema 
         `),
         // GScore 配置
         ctx.NapCatConfig.html('<div style="margin: 20px 0 10px 0; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px;">GScore 连接配置</div>'),
+        ctx.NapCatConfig.number('heartbeatInterval', '心跳间隔 (ms)', 30000, '空闲时发送心跳包的间隔，单位毫秒，0 表示关闭心跳'),
         ctx.NapCatConfig.boolean('gscoreEnable', '启用 GScore 适配', true, '是否开启 GScore 消息转发'),
         ctx.NapCatConfig.boolean('forwardSelfMessage', '上报自身消息', false, '开启后转发机器人自己发送的消息（不懂的别开）'),
         ctx.NapCatConfig.text('gscoreUrl', '连接地址', 'ws://localhost:8765', 'GScore WebSocket 地址 (ws://...)'),

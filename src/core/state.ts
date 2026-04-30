@@ -31,6 +31,7 @@ function sanitizeConfig(raw: unknown): PluginConfig {
 
     const out: PluginConfig = { ...DEFAULT_CONFIG, groupConfigs: {} };
   
+    if (typeof raw.heartbeatInterval === 'number') out.heartbeatInterval = raw.heartbeatInterval;
     if (typeof raw.gscoreEnable === 'boolean') out.gscoreEnable = raw.gscoreEnable;
     if (typeof raw.forwardSelfMessage === 'boolean') out.forwardSelfMessage = raw.forwardSelfMessage;
     if (typeof raw.commandPrefix === 'string') out.commandPrefix = raw.commandPrefix;
