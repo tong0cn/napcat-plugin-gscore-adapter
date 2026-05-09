@@ -48,6 +48,23 @@ function sanitizeConfig(raw: unknown): PluginConfig {
     if (typeof raw.privateFileForwardEnabled === 'boolean') out.privateFileForwardEnabled = raw.privateFileForwardEnabled;
     if (typeof raw.privateJsonBase64MaxKb === 'number') out.privateJsonBase64MaxKb = raw.privateJsonBase64MaxKb;
 
+    // 在线推送
+    if (typeof raw.onlinePushEnable === 'boolean') out.onlinePushEnable = raw.onlinePushEnable;
+    if (typeof raw.onlinePushEmail === 'string') out.onlinePushEmail = raw.onlinePushEmail;
+    if (typeof raw.onlinePushCooldownHours === 'number') out.onlinePushCooldownHours = raw.onlinePushCooldownHours;
+    if (typeof raw.onlinePushMaxFailCount === 'number') out.onlinePushMaxFailCount = raw.onlinePushMaxFailCount;
+
+    // 邮件配置
+    if (raw.emailProvider === 'smtp' || raw.emailProvider === 'qq') out.emailProvider = raw.emailProvider;
+    if (typeof raw.smtpHost === 'string') out.smtpHost = raw.smtpHost;
+    if (typeof raw.smtpPort === 'number') out.smtpPort = raw.smtpPort;
+    if (typeof raw.smtpUser === 'string') out.smtpUser = raw.smtpUser;
+    if (typeof raw.smtpPassword === 'string') out.smtpPassword = raw.smtpPassword;
+    if (typeof raw.smtpSender === 'string') out.smtpSender = raw.smtpSender;
+    if (typeof raw.smtpSenderName === 'string') out.smtpSenderName = raw.smtpSenderName;
+    if (typeof raw.smtpUseSsl === 'boolean') out.smtpUseSsl = raw.smtpUseSsl;
+    if (typeof raw.smtpStarttls === 'boolean') out.smtpStarttls = raw.smtpStarttls;
+
     // 黑名单清洗
     if (Array.isArray(raw.blacklist)) {
         out.blacklist = raw.blacklist.filter((item: unknown) => typeof item === 'string');

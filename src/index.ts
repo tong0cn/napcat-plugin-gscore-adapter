@@ -60,6 +60,11 @@ export const plugin_init: PluginModule['plugin_init'] = async (ctx) => {
             GScoreService.getInstance().connect();
         }
 
+        // 启动在线推送定时器
+        if (pluginState.config.onlinePushEnable) {
+            GScoreService.getInstance().startOnlinePushTimer();
+        }
+
         ctx.logger.info('插件初始化完成');
     } catch (error) {
         ctx.logger.error('插件初始化失败:', error);
@@ -356,6 +361,17 @@ export const plugin_on_config_change: PluginModule['plugin_on_config_change'] = 
                 GScoreService.getInstance().connect();
             } else {
                 GScoreService.getInstance().disconnect();
+            }
+        }
+
+        // 在线推送配置变更处理
+        const onlinePushKeys = ['onlinePushEnable', 'onlinePushEmail', 'onlinePushCooldownHours', 'onlinePushMaxFailCount'];
+        if (onlinePushKeys.includes(key)) {
+            const { GScoreService } = await import('./services/gscore-service');
+            if (pluginState.config.onlinePushEnable) {
+                GScoreService.getInstance().startOnlinePushTimer();
+            } else {
+                GScoreService.getInstance().stopOnlinePushTimer();
             }
         }
     } catch (err) {

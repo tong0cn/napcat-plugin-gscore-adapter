@@ -26,6 +26,21 @@ export const DEFAULT_CONFIG: PluginConfig = {
     customForwardName: '',
     privateFileForwardEnabled: false,
     privateJsonBase64MaxKb: 1024,
+    // 在线推送
+    onlinePushEnable: false,
+    onlinePushEmail: '',
+    onlinePushCooldownHours: 1,
+    onlinePushMaxFailCount: 5,
+    // 邮件配置
+    emailProvider: 'qq',
+    smtpHost: '',
+    smtpPort: 465,
+    smtpUser: '',
+    smtpPassword: '',
+    smtpSender: '',
+    smtpSenderName: '',
+    smtpUseSsl: true,
+    smtpStarttls: false,
 };
 
 /**
@@ -75,5 +90,26 @@ export function buildConfigSchema(ctx: NapCatPluginContext): PluginConfigSchema 
         ctx.NapCatConfig.boolean('privateFileForwardEnabled', '私聊转发文件', false, '开启后私聊收到 file 消息会自动获取链接并转发；关闭则不转发私聊文件消息'
         ),
         ctx.NapCatConfig.number('privateJsonBase64MaxKb', '私聊JSON转base64大小限制(KB)', 1024, '私聊收到 json 文件时，下载后若超出此大小则不转发并提示；未超出则转base64发送'),
+
+        // 在线推送配置
+        ctx.NapCatConfig.html('<div style="margin: 20px 0 10px 0; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px;">在线状态推送</div>'),
+        ctx.NapCatConfig.html('<div style="font-size: 12px; color: #888; margin-bottom: 10px;">每隔6分钟检查 GScore 在线状态，当服务上线时发送邮件通知</div>'),
+        ctx.NapCatConfig.boolean('onlinePushEnable', '启用在线推送', false, '开启后每隔6分钟检查 GScore 在线状态，上线时发送邮件通知'),
+        ctx.NapCatConfig.text('onlinePushEmail', '收件人邮箱', '', '推送目标邮箱，多个用英文逗号分隔'),
+        ctx.NapCatConfig.number('onlinePushCooldownHours', '推送冷却时间(小时)', 1, '上次成功发送后多久才可再次发送'),
+        ctx.NapCatConfig.number('onlinePushMaxFailCount', '连续失败上限', 5, '连续发送失败次数达到上限后停止发送，需重启插件恢复'),
+
+        // 邮件配置
+        ctx.NapCatConfig.html('<div style="margin: 20px 0 10px 0; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px;">邮件服务配置</div>'),
+        ctx.NapCatConfig.html('<div style="font-size: 12px; color: #f59e0b; margin-bottom: 10px;">⚠️ QQ邮箱需使用授权码（非QQ密码），在 QQ邮箱 → 设置 → 账户 → POP3/SMTP服务 中获取</div>'),
+        ctx.NapCatConfig.boolean('emailProvider', '邮件服务商', true, '选择 QQ邮箱 或 自定义SMTP（true=QQ, false=自定义SMTP）'),
+        ctx.NapCatConfig.text('smtpUser', 'SMTP 用户名/邮箱', '', 'QQ邮箱填写完整邮箱地址，如 123456@qq.com'),
+        ctx.NapCatConfig.text('smtpPassword', 'SMTP 密码/授权码', '', 'QQ邮箱填写授权码，自定义SMTP填写密码'),
+        ctx.NapCatConfig.text('smtpSender', '发件人邮箱', '', '留空则使用 SMTP 用户名'),
+        ctx.NapCatConfig.text('smtpSenderName', '发件人显示名', '', '邮件中显示的发件人名称，留空则不显示'),
+        ctx.NapCatConfig.text('smtpHost', 'SMTP 服务器', '', '自定义SMTP时填写，QQ邮箱自动填充'),
+        ctx.NapCatConfig.number('smtpPort', 'SMTP 端口', 465, 'QQ邮箱默认465'),
+        ctx.NapCatConfig.boolean('smtpUseSsl', '使用 SSL', true, '默认开启，端口465通常需要SSL'),
+        ctx.NapCatConfig.boolean('smtpStarttls', '使用 STARTTLS', false, '一般不需要开启'),
     );
 }

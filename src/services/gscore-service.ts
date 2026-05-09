@@ -2,6 +2,7 @@
 import WebSocket from 'ws';
 import type { OB11Message, OB11PostSendMsg } from 'napcat-types/napcat-onebot';
 import { pluginState } from '../core/state';
+import { sendOnlinePushEmail } from './mail/send';
 
 /**
  * GsCore Message 结构（早柚核心消息单元）
@@ -33,6 +34,12 @@ export class GScoreService {
   private isManualRetry: boolean = false;
   private isTimeoutTerminated: boolean = false;
   private readonly CONNECTION_TIMEOUT = 10000;
+
+  // ==================== 在线推送状态 ====================
+  private onlinePushTimer: NodeJS.Timeout | null = null;
+  private onlinePushFailCount: number = 0;
+  private onlinePushLastSentAt: number = 0; // 上次成功发送的时间戳(ms)
+  private readonly ONLINE_PUSH_INTERVAL = 6 * 60 * 1000; // 6分钟
 
   private constructor() { }
 
@@ -232,6 +239,106 @@ export class GScoreService {
     }
   }
 
+  // ==================== 在线推送定时器 ====================
+
+  /**
+   * 启动在线状态推送定时器
+   */
+  public startOnlinePushTimer(): void {
+    this.stopOnlinePushTimer();
+    if (!pluginState.config.onlinePushEnable) return;
+
+    pluginState.logger.info('[GScore] 在线推送定时器已启动，间隔6分钟');
+    this.onlinePushTimer = setInterval(() => {
+      this._onlinePushCheckTask().catch((err) => {
+        pluginState.logger.error('[GScore] 在线推送检查任务异常:', err);
+      });
+    }, this.ONLINE_PUSH_INTERVAL);
+  }
+
+  /**
+   * 停止在线状态推送定时器
+   */
+  public stopOnlinePushTimer(): void {
+    if (this.onlinePushTimer) {
+      clearInterval(this.onlinePushTimer);
+      this.onlinePushTimer = null;
+      pluginState.logger.debug('[GScore] 在线推送定时器已停止');
+    }
+  }
+
+  /**
+   * 在线推送检查任务
+   * 1. 调用 /get_status 接口
+   * 2. 校验 data.online 是否为 true
+   * 3. 通过过滤链后发送邮件
+   */
+  private async _onlinePushCheckTask(): Promise<void> {
+    const cfg = pluginState.config;
+    if (!cfg.onlinePushEnable) return;
+
+    const emails = (cfg.onlinePushEmail || '').split(',').map(e => e.trim()).filter(e => e.length > 0);
+    if (emails.length === 0) return;
+
+    const maxFail = cfg.onlinePushMaxFailCount ?? 5;
+    if (this.onlinePushFailCount >= maxFail) return;
+
+    // 调用 /get_status
+    let online = false;
+    try {
+      const url = cfg.gscoreUrl || 'ws://localhost:8765';
+      // 将 ws:// 替换为 http:// 用于 HTTP 请求
+      const httpUrl = url.replace(/^ws(s?):\/\//, 'http$1://');
+      const statusUrl = new URL('/get_status', httpUrl);
+      const token = cfg.gscoreToken || '';
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const resp = await fetch(statusUrl.toString(), { headers, signal: AbortSignal.timeout(10000) });
+      if (!resp.ok) {
+        pluginState.logger.debug(`[GScore] /get_status 返回非200: ${resp.status}`);
+        return;
+      }
+      const json = await resp.json() as { data?: { online?: boolean } };
+      online = json?.data?.online === true;
+    } catch (err: any) {
+      pluginState.logger.debug(`[GScore] /get_status 请求失败: ${err?.message || err}`);
+      return;
+    }
+
+    if (!online) {
+      pluginState.logger.debug('[GScore] /get_status 返回 offline，跳过推送');
+      return;
+    }
+
+    // 冷却期检查
+    const cooldownHours = cfg.onlinePushCooldownHours ?? 1;
+    const cooldownMs = cooldownHours * 3600 * 1000;
+    if (this.onlinePushLastSentAt > 0 && (Date.now() - this.onlinePushLastSentAt) < cooldownMs) {
+      pluginState.logger.debug('[GScore] 在线推送冷却中，跳过');
+      return;
+    }
+
+    // 发送邮件
+    pluginState.logger.info('[GScore] 检测到服务上线，正在发送推送邮件...');
+    for (const email of emails) {
+      const [success, msg] = await sendOnlinePushEmail(email);
+      if (success) {
+        this.onlinePushFailCount = 0;
+        this.onlinePushLastSentAt = Date.now();
+        pluginState.logger.info(`[GScore] 推送邮件已发送至 ${email}`);
+      } else {
+        this.onlinePushFailCount++;
+        pluginState.logger.warn(`[GScore] 推送邮件发送失败(${this.onlinePushFailCount}/${maxFail}): ${msg}`);
+        if (this.onlinePushFailCount >= maxFail) {
+          pluginState.logger.error(`[GScore] 连续发送失败已达上限(${maxFail})，停止推送`);
+          this.stopOnlinePushTimer();
+          return;
+        }
+      }
+    }
+  }
+
   public disconnect(resetCounter: boolean = true) {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
@@ -251,6 +358,7 @@ export class GScoreService {
       this.reconnectAttempts = 0;
       this.isManualRetry = false;
     }
+    this.stopOnlinePushTimer();
   }
 
   private scheduleReconnect() {

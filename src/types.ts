@@ -49,6 +49,38 @@ export interface PluginConfig {
     privateFileForwardEnabled?: boolean;
     /** 扩展兼容：私聊 JSON 文件转 base64 的大小限制（KB） */
     privateJsonBase64MaxKb?: number;
+
+    // ==================== 在线推送配置 ====================
+
+    /** 全局开关：是否启用在线状态推送 */
+    onlinePushEnable?: boolean;
+    /** 推送收件人邮箱，多个用英文逗号分隔 */
+    onlinePushEmail?: string;
+    /** 推送冷却时间（小时），上次成功发送后多久才可再次发送，默认1 */
+    onlinePushCooldownHours?: number;
+    /** 连续发送失败上限，达到后停止发送，默认5 */
+    onlinePushMaxFailCount?: number;
+
+    // ==================== 邮件配置 ====================
+
+    /** 邮件服务提供商: 'smtp' | 'qq' */
+    emailProvider?: 'smtp' | 'qq';
+    /** SMTP 服务器地址 */
+    smtpHost?: string;
+    /** SMTP 服务器端口，默认465 */
+    smtpPort?: number;
+    /** SMTP 登录用户名 */
+    smtpUser?: string;
+    /** SMTP 登录密码（QQ邮箱为授权码） */
+    smtpPassword?: string;
+    /** 发件人邮箱，默认等于 smtpUser */
+    smtpSender?: string;
+    /** 发件人显示名 */
+    smtpSenderName?: string;
+    /** 是否使用 SSL，默认 true */
+    smtpUseSsl?: boolean;
+    /** 是否使用 STARTTLS，默认 false */
+    smtpStarttls?: boolean;
 }
 
 /**
