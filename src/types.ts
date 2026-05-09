@@ -13,8 +13,6 @@
  * 插件主配置接口
  */
 export interface PluginConfig {
-    /** 心跳间隔（毫秒），0 表示关闭心跳 */
-    heartbeatInterval: number;
     /** 全局开关：是否启用转发功能 */
     gscoreEnable: boolean;
     /** 是否上报/转发机器人自身发送的消息 */

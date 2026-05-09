@@ -17,7 +17,6 @@ export const DEFAULT_CONFIG: PluginConfig = {
     gscoreToken: '',
     reconnectInterval: 5000,
     maxReconnectAttempts: 10,
-    heartbeatInterval: 30000,
     blacklist: [],
     customImageSummary: '',
     masterForwardWhenDisabled: false,
@@ -61,7 +60,6 @@ export function buildConfigSchema(ctx: NapCatPluginContext): PluginConfigSchema 
         ctx.NapCatConfig.text('gscoreToken', '连接 Token', '', '连接鉴权 Token (选填)'),
         ctx.NapCatConfig.number('reconnectInterval', '重连间隔 (ms)', 5000, '断线重连的时间间隔，单位毫秒'),
         ctx.NapCatConfig.number('maxReconnectAttempts', '最大重连次数', 10, '最大尝试重连次数，设置为0则无限重连'),
-        ctx.NapCatConfig.number('heartbeatInterval', '心跳间隔 (ms)', 30000, '空闲时发送心跳包的间隔，单位毫秒，0 表示关闭心跳'),
         // 命令配置
         ctx.NapCatConfig.html('<div style="margin: 20px 0 10px 0; font-weight: bold; border-bottom: 1px solid #ddd; padding-bottom: 5px;">命令配置</div>'),
         ctx.NapCatConfig.text('commandPrefix', '命令前缀', '#早柚', '群内快捷命令前缀，例如设置为 "#早柚" 则命令为 "#早柚群开启"'),
